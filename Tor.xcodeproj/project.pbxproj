@@ -715,6 +715,7 @@
 				CODE_SIGN_IDENTITY = "";
 				DEFINES_MODULE = YES;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_BITCODE = NO;
 				FRAMEWORK_VERSION = A;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
@@ -742,6 +743,7 @@
 				CODE_SIGN_IDENTITY = "";
 				DEFINES_MODULE = YES;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_BITCODE = NO;
 				FRAMEWORK_VERSION = A;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
@@ -765,6 +767,7 @@
 		D0198A9E1C63DA5D00EA0043 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_BITCODE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				PRODUCT_NAME = openssl;
 				SDKROOT = macosx;
@@ -774,6 +777,7 @@
 		D0198A9F1C63DA5D00EA0043 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_BITCODE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				PRODUCT_NAME = openssl;
 				SDKROOT = macosx;
@@ -783,6 +787,7 @@
 		D0198AA21C63DE2100EA0043 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_BITCODE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				OTHER_CFLAGS = "-I\"$(SRCROOT)/Tor/openssl/include\"";
 				OTHER_LDFLAGS = "-L$(BUILT_PRODUCTS_DIR)";
@@ -794,6 +799,7 @@
 		D0198AA31C63DE2100EA0043 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_BITCODE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				OTHER_CFLAGS = "-I\"$(SRCROOT)/Tor/openssl/include\"";
 				OTHER_LDFLAGS = "-L$(BUILT_PRODUCTS_DIR)";
@@ -805,6 +811,7 @@
 		D0198AAA1C63DEFF00EA0043 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_BITCODE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				OTHER_LDFLAGS = "-L$(BUILT_PRODUCTS_DIR)";
 				PRODUCT_NAME = tor;
@@ -815,6 +822,7 @@
 		D0198AAB1C63DEFF00EA0043 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_BITCODE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				OTHER_LDFLAGS = "-L$(BUILT_PRODUCTS_DIR)";
 				PRODUCT_NAME = tor;
