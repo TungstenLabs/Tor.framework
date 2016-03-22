@@ -34,6 +34,30 @@
     return [NSURL fileURLWithPath:[self.options objectForKey:@"DataDirectory"]];
 }
 
+- (void)setTorrcFile:(NSURL *)torrcFile
+{
+    NSMutableDictionary *options = [self.options mutableCopy];
+    [options setObject:@(torrcFile.fileSystemRepresentation) forKey:@"- f"];
+    self.options = [options copy];
+}
+
+- (NSURL *)torrcFile
+{
+    return [NSURL fileURLWithPath:[self.options objectForKey:@"- f"]];
+}
+
+- (void)setGeoipFile:(NSURL *)geoipFile
+{
+    NSMutableDictionary *options = [self.options mutableCopy];
+    [options setObject:@(geoipFile.fileSystemRepresentation) forKey:@"GeoIPFile"];
+    self.options = [options copy];
+}
+
+- (NSURL *)geoipFile
+{
+    return [NSURL fileURLWithPath:[self.options objectForKey:@"GeoIPFile"]];
+}
+
 - (void)setControlSocket:(NSURL *)controlSocket {
     NSMutableDictionary *options = [self.options mutableCopy];
     [options setObject:@(controlSocket.fileSystemRepresentation) forKey:@"ControlSocket"];

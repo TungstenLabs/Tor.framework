@@ -16,6 +16,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy, nullable) NSURL *controlSocket;
 @property (nonatomic, copy, nullable) NSURL *socksURL;
 @property (nonatomic, copy, nullable) NSNumber *cookieAuthentication;
+@property (nonatomic, copy, nullable) NSURL *torrcFile;
+@property (nonatomic, copy, nullable) NSURL *geoipFile;
 
 @property (nonatomic, copy, null_resettable) NSDictionary<NSString *, NSString *> *options;
 @property (nonatomic, copy, null_resettable) NSArray<NSString *> *arguments;
