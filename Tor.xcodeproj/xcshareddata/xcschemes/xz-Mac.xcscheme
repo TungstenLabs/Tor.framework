@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "D0FBEC8B1B79BC22005C7577"
-               BuildableName = "libevent-iOS"
-               BlueprintName = "libevent-iOS"
+               BlueprintIdentifier = "8A44D7321FA3C41700C4E1C0"
+               BuildableName = "xz-Mac"
+               BlueprintName = "xz-Mac"
                ReferencedContainer = "container:Tor.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -45,9 +45,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D0FBEC8B1B79BC22005C7577"
-            BuildableName = "libevent-iOS"
-            BlueprintName = "libevent-iOS"
+            BlueprintIdentifier = "8A44D7321FA3C41700C4E1C0"
+            BuildableName = "xz-Mac"
+            BlueprintName = "xz-Mac"
             ReferencedContainer = "container:Tor.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -63,9 +63,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D0FBEC8B1B79BC22005C7577"
-            BuildableName = "libevent-iOS"
-            BlueprintName = "libevent-iOS"
+            BlueprintIdentifier = "8A44D7321FA3C41700C4E1C0"
+            BuildableName = "xz-Mac"
+            BlueprintName = "xz-Mac"
             ReferencedContainer = "container:Tor.xcodeproj">
          </BuildableReference>
       </MacroExpansion>

@@ -4,22 +4,20 @@
 //
 //  Created by Conrad Kramer on 5/10/14.
 //
-//
 
 #import "TORController.h"
 
 #import <or/or.h>
+#import <sys/un.h>
 #import "TORThread.h"
 
-const char tor_git_revision[] =
-#ifndef _MSC_VER
-#include "micro-revision.i"
-#endif
-"";
+NS_ASSUME_NONNULL_BEGIN
 
-typedef BOOL (^TORObserverBlock)(NSArray<NSNumber *> *codes, NSArray<NSData *> *lines, BOOL *stop);
-
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 100000
+NSErrorDomain const TORControllerErrorDomain = @"TORControllerErrorDomain";
+#else
 NSString * const TORControllerErrorDomain = @"TORControllerErrorDomain";
+#endif
 
 static NSString * const TORControllerMidReplyLineSeparator = @"-";
 static NSString * const TORControllerDataReplyLineSeparator = @"+";
@@ -30,8 +28,8 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
     NSString *_host;
     in_port_t _port;
     dispatch_io_t _channel;
-    NSMutableArray *_blocks;
-    NSOrderedSet *_events;
+    NSMutableArray<TORObserverBlock> *_blocks;
+    int sock;
 }
 
 + (dispatch_queue_t)controlQueue {
@@ -45,31 +43,30 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
 
 - (instancetype)initWithSocketURL:(NSURL *)url {
     NSParameterAssert(url.fileURL);
-    self = [self init];
-    if (self) {
-        _url = [url copy];
-        [self connect:nil];
-    }
+    self = [super init];
+    if (!self)
+        return nil;
+    
+    _url = [url copy];
+    _blocks = [NSMutableArray new];
+
+    [self connect:nil];
+    
     return self;
 }
 
 - (instancetype)initWithSocketHost:(NSString *)host port:(in_port_t)port {
     NSParameterAssert(host && port);
-    self = [self init];
-    if (self) {
-        _host = [host copy];
-        _port = port;
-        [self connect:nil];
-    }
-    return self;
-}
-
-- (instancetype)init {
     self = [super init];
-    if (self) {
-        _blocks = [NSMutableArray new];
-        _events = [NSOrderedSet new];
-    }
+    if (!self)
+        return nil;
+    
+    _host = [host copy];
+    _port = port;
+    _blocks = [NSMutableArray new];
+
+    [self connect:nil];
+    
     return self;
 }
 
@@ -88,17 +85,18 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
     if (_channel)
         return NO;
     
-    int sock = -1;
+    self->sock = -1;
+    
+    _events = [NSOrderedSet new];
     
     if (_url) {
         struct sockaddr_un control_addr = {};
         control_addr.sun_family = AF_UNIX;
         strncpy(control_addr.sun_path, _url.fileSystemRepresentation, sizeof(control_addr.sun_path) - 1);
-        control_addr.sun_len = SUN_LEN(&control_addr);
+        control_addr.sun_len = (unsigned char)SUN_LEN(&control_addr);
         
-        sock = socket(AF_UNIX, SOCK_STREAM, 0);
-        
-        if (connect(sock, (struct sockaddr *)&control_addr, control_addr.sun_len) == -1) {
+        self->sock = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (connect(self->sock, (struct sockaddr *)&control_addr, control_addr.sun_len) == -1) {
             if (error)
                 *error = [NSError errorWithDomain:NSPOSIXErrorDomain code:errno userInfo:nil];
             return NO;
@@ -117,9 +115,9 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
         control_addr.sin_addr = addr;
         control_addr.sin_len = (__uint8_t)sizeof(control_addr);
         
-        sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        self->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         
-        if (connect(sock, (struct sockaddr *)&control_addr, control_addr.sin_len) == -1) {
+        if (connect(self->sock, (struct sockaddr *)&control_addr, control_addr.sin_len) == -1) {
             if (error)
                 *error = [NSError errorWithDomain:NSPOSIXErrorDomain code:errno userInfo:nil];
             return NO;
@@ -129,8 +127,8 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
     }
     
     __weak TORController *weakSelf = self;
-    _channel = dispatch_io_create(DISPATCH_IO_STREAM, sock, [[self class] controlQueue], ^(int error) {
-        close(sock);
+    _channel = dispatch_io_create(DISPATCH_IO_STREAM, self->sock, [[self class] controlQueue], ^(int __unused error) {
+        close(self->sock);
         
         TORController *strongSelf = weakSelf;
         if (strongSelf) {
@@ -141,9 +139,9 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
         return NO;
     
     NSData *separator = [NSData dataWithBytes:"\x0d\x0a" length:2];
-    NSSet *lineSeparators = [NSSet setWithObjects:TORControllerMidReplyLineSeparator,
-                             TORControllerDataReplyLineSeparator,
-                             TORControllerEndReplyLineSeparator, nil];
+    NSSet<NSString *> *lineSeparators = [NSSet setWithObjects:TORControllerMidReplyLineSeparator,
+                                         TORControllerDataReplyLineSeparator,
+                                         TORControllerEndReplyLineSeparator, nil];
     
     __block NSMutableData *buffer = [NSMutableData new];
     __block NSMutableArray<NSNumber *> *codes = [NSMutableArray new];
@@ -151,7 +149,7 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
     __block BOOL dataBlock = NO;
     
     dispatch_io_set_low_water(_channel, 1);
-    dispatch_io_read(_channel, 0, SIZE_MAX, [[self class] controlQueue], ^(bool done, dispatch_data_t data, int error) {
+    dispatch_io_read(_channel, 0, SIZE_MAX, [[self class] controlQueue], ^(bool __unused done, dispatch_data_t data, int __unused error) {
         [buffer appendData:(NSData *)data];
         
         NSRange separatorRange;
@@ -224,13 +222,26 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
     return YES;
 }
 
+- (void)disconnect {
+    [self sendCommand:@"SIGNAL NEWNYM" arguments:nil data:nil observer:^BOOL(NSArray<NSNumber *> * __unused codes, NSArray<NSData *> * __unused lines, BOOL * __unused stop) {
+        return YES;
+    }];
+    
+    [self sendCommand:@"SIGNAL SHUTDOWN" arguments:@[@"0"] data:nil observer:^BOOL(NSArray<NSNumber *> * __unused codes, NSArray<NSData *> * __unused lines, BOOL * __unused stop) {
+        shutdown(self->sock, SHUT_RDWR);
+        self->_channel = nil;
+     
+        return YES;
+     }];
+}
+
 #pragma mark - Receiving Responses
 
 - (id)addObserverForCircuitEstablished:(void (^)(BOOL established))block {
     NSParameterAssert(block);
     
     NSString *event = @"STATUS_CLIENT";
-    id observer = [self addObserverForStatusEvents:^(NSString *type, NSString *severity, NSString *action, NSDictionary *arguments) {
+    id observer = [self addObserverForStatusEvents:^(NSString *type, NSString * __unused severity, NSString *action, NSDictionary<NSString *, NSString *> * __unused arguments) {
         if ([type isEqualToString:event]) {
             if ([action isEqualToString:@"CIRCUIT_ESTABLISHED"]) {
                 block(YES);
@@ -244,11 +255,11 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
         return NO;
     }];
     
-    void (^completion)(BOOL, NSError *) = ^(BOOL success, NSError *error) {
+    void (^completion)(BOOL, NSError *) = ^(BOOL success, NSError * __unused error) {
         if (!success)
             [self removeObserver:observer];
         
-        [self getInfoForKeys:@[@"status/circuit-established"] completion:^(NSArray *values) {
+        [self getInfoForKeys:@[@"status/circuit-established"] completion:^(NSArray<NSString *> *values) {
             if (values.count != 1)
                 return [self removeObserver:observer];
             
@@ -258,10 +269,10 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
     };
     
     dispatch_async([[self class] controlQueue], ^{
-        if ([_events containsObject:event]) {
+        if ([self->_events containsObject:event]) {
             completion(YES, nil);
         } else {
-            NSMutableOrderedSet *events = [_events mutableCopy];
+            NSMutableOrderedSet *events = [self->_events mutableCopy];
             [events addObject:event];
             [self listenForEvents:events.array completion:completion];
         }
@@ -270,9 +281,9 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
     return observer;
 }
 
-- (id)addObserverForStatusEvents:(BOOL (^)(NSString *type, NSString *severity, NSString *action, NSDictionary *arguments))block {
+- (id)addObserverForStatusEvents:(BOOL (^)(NSString *type, NSString *severity, NSString *action, NSDictionary<NSString *, NSString *> *arguments))block {
     NSParameterAssert(block);
-    return [self addObserver:^(NSArray<NSNumber *> *codes, NSArray<NSData *> *lines, BOOL *stop) {
+    return [self addObserver:^(NSArray<NSNumber *> *codes, NSArray<NSData *> *lines, BOOL * __unused stop) {
         if (codes.firstObject.integerValue != 650)
             return NO;
         
@@ -280,15 +291,15 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
         if (![replyString hasPrefix:@"STATUS_"])
             return NO;
         
-        NSArray *components = [replyString componentsSeparatedByString:@" "];
+        NSArray<NSString *> *components = [replyString componentsSeparatedByString:@" "];
         if (components.count < 3)
             return NO;
         
-        NSMutableDictionary *arguments = nil;
+        NSMutableDictionary<NSString *, NSString *> *arguments = nil;
         if (components.count > 3) {
             arguments = [NSMutableDictionary new];
             for (NSString *argument in [components subarrayWithRange:NSMakeRange(3, components.count - 3)]) {
-                NSArray *keyValuePair = [argument componentsSeparatedByString:@"="];
+                NSArray<NSString *> *keyValuePair = [argument componentsSeparatedByString:@"="];
                 if (keyValuePair.count == 2) {
                     [arguments setObject:keyValuePair[1] forKey:keyValuePair[0]];
                 }
@@ -302,23 +313,23 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
 - (id)addObserver:(TORObserverBlock)observer {
     NSParameterAssert(observer);
     dispatch_async([[self class] controlQueue], ^{
-        [_blocks addObject:observer];
+        [self->_blocks addObject:observer];
     });
     return observer;
 }
 
-- (void)removeObserver:(id)observer {
+- (void)removeObserver:(nullable id)observer {
     if (!observer)
         return;
     
     dispatch_async([[self class] controlQueue], ^{
-        [_blocks removeObject:observer];
+        [self->_blocks removeObject:observer];
     });
 }
 
 #pragma mark - Sending Commands
 
-- (void)authenticateWithData:(NSData *)data completion:(void (^)(BOOL success, NSError *error))completion {
+- (void)authenticateWithData:(NSData *)data completion:(void (^__nullable)(BOOL success, NSError * __nullable error))completion {
     NSMutableString *hexString = [NSMutableString new];
     for (NSUInteger idx = 0; idx < data.length; idx++)
         [hexString appendFormat:@"%02x", ((const unsigned char *)data.bytes)[idx]];
@@ -329,7 +340,7 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
             return NO;
         
         NSString *message = [[NSString alloc] initWithData:lines.firstObject encoding:NSUTF8StringEncoding];
-        NSDictionary *userInfo = [NSDictionary dictionaryWithObjectsAndKeys:message, NSLocalizedDescriptionKey, nil];
+        NSDictionary<NSString *, NSString *> *userInfo = [NSDictionary dictionaryWithObjectsAndKeys:message, NSLocalizedDescriptionKey, nil];
         BOOL success = (code == 250 && [message isEqualToString:@"OK"]);
         if (completion)
             completion(success, success ? nil : [NSError errorWithDomain:TORControllerErrorDomain code:code userInfo:userInfo]);
@@ -339,17 +350,78 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
     }];
 }
 
-- (void)listenForEvents:(NSArray *)events completion:(void (^)(BOOL success, NSError *error))completion {
+- (void)resetConfForKey:(NSString *)key completion:(void (^__nullable)(BOOL success, NSError * __nullable error))completion {
+	[self sendCommand:@"RESETCONF" arguments:@[key] data:nil observer:^BOOL(NSArray<NSNumber *> *codes, NSArray<NSData *> *lines, BOOL *stop) {
+		NSUInteger code = codes.firstObject.unsignedIntegerValue;
+		if (code != 250 && code != 515)
+			return NO;
+
+		NSString *message = [[NSString alloc] initWithData:lines.firstObject encoding:NSUTF8StringEncoding];
+		NSDictionary<NSString *, NSString *> *userInfo = [NSDictionary dictionaryWithObjectsAndKeys:message, NSLocalizedDescriptionKey, nil];
+		BOOL success = (code == 250 && [message isEqualToString:@"OK"]);
+		if (completion)
+			completion(success, success ? nil : [NSError errorWithDomain:TORControllerErrorDomain code:code userInfo:userInfo]);
+
+		*stop = YES;
+		return YES;
+	}];
+}
+
+- (void)setConfForKey:(NSString *)key withValue:(NSString *)value completion:(void (^__nullable)(BOOL success, NSError * __nullable error))completion {
+	NSString *arg = [NSString stringWithFormat:@"%@=%@", key, value];
+
+	[self sendCommand:@"SETCONF" arguments:@[arg] data:nil observer:^BOOL(NSArray<NSNumber *> *codes, NSArray<NSData *> *lines, BOOL *stop) {
+		NSUInteger code = codes.firstObject.unsignedIntegerValue;
+		if (code != 250 && code != 515)
+			return NO;
+
+		NSString *message = [[NSString alloc] initWithData:lines.firstObject encoding:NSUTF8StringEncoding];
+		NSDictionary<NSString *, NSString *> *userInfo = [NSDictionary dictionaryWithObjectsAndKeys:message, NSLocalizedDescriptionKey, nil];
+		BOOL success = (code == 250 && [message isEqualToString:@"OK"]);
+		if (completion)
+			completion(success, success ? nil : [NSError errorWithDomain:TORControllerErrorDomain code:code userInfo:userInfo]);
+
+		*stop = YES;
+		return YES;
+	}];
+}
+- (void)setConfs:(NSArray<NSDictionary *> *)configs completion:(void (^__nullable)(BOOL success, NSError * __nullable error))completion {
+    NSMutableArray *conf_arg = [[NSMutableArray alloc] init];
+    for (NSDictionary *config in configs) {
+        NSString *key = [config objectForKey:@"key"];
+        NSString *value = [config objectForKey:@"value"];
+        NSString *arg = [NSString stringWithFormat:@"%@=%@", key, value];
+        [conf_arg addObject:arg];
+    }
+
+    [self sendCommand:@"SETCONF" arguments:conf_arg data:nil observer:^BOOL(NSArray<NSNumber *> *codes, NSArray<NSData *> *lines, BOOL *stop) {
+        NSUInteger code = codes.firstObject.unsignedIntegerValue;
+        if (code != 250 && code != 515)
+            return NO;
+        
+        NSString *message = [[NSString alloc] initWithData:lines.firstObject encoding:NSUTF8StringEncoding];
+        NSDictionary<NSString *, NSString *> *userInfo = [NSDictionary dictionaryWithObjectsAndKeys:message, NSLocalizedDescriptionKey, nil];
+        BOOL success = (code == 250 && [message isEqualToString:@"OK"]);
+        if (completion)
+            completion(success, success ? nil : [NSError errorWithDomain:TORControllerErrorDomain code:code userInfo:userInfo]);
+        
+        *stop = YES;
+        return YES;
+    }];
+
+}
+
+- (void)listenForEvents:(NSArray<NSString *> *)events completion:(void (^__nullable)(BOOL success, NSError * __nullable error))completion {
     [self sendCommand:@"SETEVENTS" arguments:events data:nil observer:^BOOL(NSArray<NSNumber *> *codes, NSArray<NSData *> *lines, BOOL *stop) {
         NSUInteger code = codes.firstObject.unsignedIntegerValue;
         if (code != 250 && code != 552)
             return NO;
         
         NSString *message = [[NSString alloc] initWithData:lines.firstObject encoding:NSUTF8StringEncoding];
-        NSDictionary *userInfo = [NSDictionary dictionaryWithObjectsAndKeys:message, NSLocalizedDescriptionKey, nil];
+        NSDictionary<NSString *, NSString *> *userInfo = [NSDictionary dictionaryWithObjectsAndKeys:message, NSLocalizedDescriptionKey, nil];
         BOOL success = (code == 250 && [message isEqualToString:@"OK"]);
         if (success)
-            _events = [NSOrderedSet orderedSetWithArray:events];
+            self->_events = [NSOrderedSet orderedSetWithArray:events];
         if (completion)
             completion(success, success ? nil : [NSError errorWithDomain:TORControllerErrorDomain code:code userInfo:userInfo]);
         
@@ -358,12 +430,12 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
     }];
 }
 
-- (void)getInfoForKeys:(NSArray *)keys completion:(void (^)(NSArray *values))completion {
+- (void)getInfoForKeys:(NSArray<NSString *> *)keys completion:(void (^)(NSArray<NSString *> *values))completion {
     [self sendCommand:@"GETINFO" arguments:keys data:nil observer:^BOOL(NSArray<NSNumber *> *codes, NSArray<NSData *> *lines, BOOL *stop) {
         if ((lines.count - 1) != keys.count)
             return NO;
         
-        NSMutableArray *strings = [NSMutableArray new];
+        NSMutableArray<NSString *> *strings = [NSMutableArray new];
         for (NSData *line in lines) {
             NSString *string = [[NSString alloc] initWithData:line encoding:NSUTF8StringEncoding];
             if (!string)
@@ -375,12 +447,12 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
         if (codes.lastObject.integerValue != 250 || ![strings.lastObject isEqualToString:@"OK"])
             return NO;
         
-        NSMutableDictionary *info = [NSMutableDictionary new];
+        NSMutableDictionary<NSString *, NSString *> *info = [NSMutableDictionary new];
         for (NSUInteger idx = 0; idx < strings.count - 1; idx++) {
             NSUInteger code = codes[idx].unsignedIntegerValue;
             if (code == 250) {
                 NSString *pair = strings[idx];
-                NSArray *components = [pair componentsSeparatedByString:@"="];
+                NSArray<NSString *> *components = [pair componentsSeparatedByString:@"="];
                 if (components.count == 2) {
                     NSCharacterSet *quotes = [NSCharacterSet characterSetWithCharactersInString:@"\""];
                     NSString *key = [components[0] stringByTrimmingCharactersInSet:quotes];
@@ -406,12 +478,12 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
     }];
 }
 
-- (void)getSessionConfiguration:(void (^)(NSURLSessionConfiguration *configuration))completion {
-    [self getInfoForKeys:@[@"net/listeners/socks"] completion:^(NSArray *values) {
+- (void)getSessionConfiguration:(void (^)(NSURLSessionConfiguration * __nullable configuration))completion {
+    [self getInfoForKeys:@[@"net/listeners/socks"] completion:^(NSArray<NSString *> *values) {
         if (values.count != 1)
             return completion(nil);
         
-        NSArray *components = [values.firstObject componentsSeparatedByString:@":"];
+        NSArray<NSString *> *components = [values.firstObject componentsSeparatedByString:@":"];
         if (components.count != 2)
             return completion(nil);
         
@@ -419,7 +491,7 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
             return completion(nil); // TODO: Provide error
         
         if ([components[1] rangeOfCharacterFromSet:[[NSCharacterSet decimalDigitCharacterSet] invertedSet]].location != NSNotFound)
-            return completion(nil);
+            return completion(nil); // TODO: Provide error
 
         NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
         configuration.connectionProxyDictionary = @{(id)kCFProxyTypeKey: (id)kCFProxyTypeSOCKS,
@@ -429,7 +501,7 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
     }];
 }
 
-- (void)sendCommand:(NSString *)command arguments:(NSArray *)arguments data:(NSData *)data observer:(TORObserverBlock)observer {
+- (void)sendCommand:(NSString *)command arguments:(nullable NSArray<NSString *> *)arguments data:(nullable NSData *)data observer:(TORObserverBlock)observer {
     NSParameterAssert(command.length);
     if (!_channel)
         return;
@@ -448,11 +520,13 @@ static NSString * const TORControllerEndReplyLineSeparator = @" ";
     }
     
     dispatch_data_t dispatchData = dispatch_data_create(commandData.bytes, commandData.length, [[self class] controlQueue], DISPATCH_DATA_DESTRUCTOR_DEFAULT);
-    dispatch_io_write(_channel, 0, dispatchData, [[self class] controlQueue], ^(bool done, dispatch_data_t data, int error) {
+    dispatch_io_write(_channel, 0, dispatchData, [[self class] controlQueue], ^(bool done, dispatch_data_t __unused data, int error) {
         if (done && !error && observer) {
-            [_blocks insertObject:observer atIndex:0];
+            [self->_blocks insertObject:observer atIndex:0];
         }
     });
 }
 
 @end
+
+NS_ASSUME_NONNULL_END

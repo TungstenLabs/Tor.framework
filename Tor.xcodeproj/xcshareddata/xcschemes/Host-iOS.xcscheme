@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "D0FBEC8B1B79BC22005C7577"
-               BuildableName = "libevent-iOS"
-               BlueprintName = "libevent-iOS"
+               BlueprintIdentifier = "D0B283B71B79D7FA00D0DDA9"
+               BuildableName = "Host.app"
+               BlueprintName = "Host-iOS"
                ReferencedContainer = "container:Tor.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -29,6 +29,15 @@
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
       </Testables>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "D0B283B71B79D7FA00D0DDA9"
+            BuildableName = "Host.app"
+            BlueprintName = "Host-iOS"
+            ReferencedContainer = "container:Tor.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
       <AdditionalOptions>
       </AdditionalOptions>
    </TestAction>
@@ -42,15 +51,16 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
-      <MacroExpansion>
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D0FBEC8B1B79BC22005C7577"
-            BuildableName = "libevent-iOS"
-            BlueprintName = "libevent-iOS"
+            BlueprintIdentifier = "D0B283B71B79D7FA00D0DDA9"
+            BuildableName = "Host.app"
+            BlueprintName = "Host-iOS"
             ReferencedContainer = "container:Tor.xcodeproj">
          </BuildableReference>
-      </MacroExpansion>
+      </BuildableProductRunnable>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>
@@ -60,15 +70,16 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <MacroExpansion>
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D0FBEC8B1B79BC22005C7577"
-            BuildableName = "libevent-iOS"
-            BlueprintName = "libevent-iOS"
+            BlueprintIdentifier = "D0B283B71B79D7FA00D0DDA9"
+            BuildableName = "Host.app"
+            BlueprintName = "Host-iOS"
             ReferencedContainer = "container:Tor.xcodeproj">
          </BuildableReference>
-      </MacroExpansion>
+      </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

@@ -4,7 +4,6 @@
 //
 //  Created by Conrad Kramer on 8/10/15.
 //
-//
 
 #import <XCTest/XCTest.h>
 #import <Tor/Tor.h>
@@ -18,6 +17,7 @@
 @implementation TORControllerTests
 
 + (TORConfiguration *)configuration {
+#if TARGET_IPHONE_SIMULATOR
     NSString *homeDirectory = nil;
     for (NSString *variable in @[@"IPHONE_SIMULATOR_HOST_HOME", @"SIMULATOR_HOST_HOME"]) {
         char *value = getenv(variable.UTF8String);
@@ -26,6 +26,9 @@
             break;
         }
     }
+#else
+    NSString *homeDirectory = NSHomeDirectory();
+#endif
     
     TORConfiguration *configuration = [TORConfiguration new];
     configuration.cookieAuthentication = @YES;
@@ -82,7 +85,7 @@
     
     TORController *controller = self.controller;
 
-    void (^test)() = ^{
+    void (^test)(void) = ^{
         [controller getSessionConfiguration:^(NSURLSessionConfiguration *configuration) {
             NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration];
             [[session dataTaskWithURL:[NSURL URLWithString:@"https://facebookcorewwwi.onion/"] completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
