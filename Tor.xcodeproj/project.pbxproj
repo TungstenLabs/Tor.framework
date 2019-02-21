@@ -21,6 +21,7 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		630D0E87221EC52100F8643A /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 630D0E86221EC52100F8643A /* CFNetwork.framework */; };
 		8A44D7431FA3C9FC00C4E1C0 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A44D7411FA3C9FC00C4E1C0 /* liblzma.a */; };
 		8A44D7441FA3D4E400C4E1C0 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A44D7411FA3C9FC00C4E1C0 /* liblzma.a */; };
 		8A9D5D18216BE12100B0BB19 /* libtor-term.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A9D5CF5216BE12000B0BB19 /* libtor-term.a */; };
@@ -253,6 +254,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		630D0E86221EC52100F8643A /* CFNetwork.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CFNetwork.framework; path = System/Library/Frameworks/CFNetwork.framework; sourceTree = SDKROOT; };
 		8A44D72D1FA3BBE000C4E1C0 /* xz.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = xz.sh; path = Tor/xz.sh; sourceTree = "<group>"; };
 		8A44D7411FA3C9FC00C4E1C0 /* liblzma.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A9D5CF5216BE12000B0BB19 /* libtor-term.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = "libtor-term.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -350,6 +352,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				630D0E87221EC52100F8643A /* CFNetwork.framework in Frameworks */,
 				A044F45621F9F3F50094F807 /* libtor-geoip.a in Frameworks */,
 				D0198ABE1C63E16500EA0043 /* libssl.a in Frameworks */,
 				D0198AB91C63E16500EA0043 /* libevent.a in Frameworks */,
@@ -622,6 +625,7 @@
 		D0FBECA91B79C023005C7577 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				630D0E86221EC52100F8643A /* CFNetwork.framework */,
 				A044F45321F9F2F60094F807 /* libtor-geoip.a */,
 				A044F45521F9F3F40094F807 /* libtor-geoip.a */,
 				8A9D5CF9216BE12000B0BB19 /* libcurve25519_donna.a */,
@@ -1270,6 +1274,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D0401AD71D2CB8C300602E9B /* Tor-Mac.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = NO;
 			};
 			name = Debug;
 		};
@@ -1277,6 +1282,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D0401AD71D2CB8C300602E9B /* Tor-Mac.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = NO;
 			};
 			name = Release;
 		};
