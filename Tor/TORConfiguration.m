@@ -35,7 +35,27 @@ NS_ASSUME_NONNULL_BEGIN
     NSString *path = self.options[@"DataDirectory"];
     return (path ? [NSURL fileURLWithPath:path] : nil);
 }
+    
+- (void)setTorrcFile:(nullable NSURL *)torrcFile {
+    NSMutableDictionary *options = [self.options mutableCopy];
+    [options setObject:@(torrcFile.fileSystemRepresentation) forKey:@"- f"];
+    self.options = [options copy];
+}
 
+- (nullable NSURL *)torrcFile {
+    return [NSURL fileURLWithPath:[self.options objectForKey:@"- f"]];
+}
+
+- (void)setGeoipFile:(nullable NSURL *)geoipFile {
+    NSMutableDictionary *options = [self.options mutableCopy];
+    [options setObject:@(geoipFile.fileSystemRepresentation) forKey:@"GeoIPFile"];
+    self.options = [options copy];
+}
+
+- (nullable NSURL *)geoipFile {
+    return [NSURL fileURLWithPath:[self.options objectForKey:@"GeoIPFile"]];
+}
+    
 - (void)setControlSocket:(nullable NSURL *)controlSocket {
     NSMutableDictionary *options = [self.options mutableCopy];
     options[@"ControlSocket"] = @(controlSocket.fileSystemRepresentation);
